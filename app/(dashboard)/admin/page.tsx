@@ -1,6 +1,3 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,53 +6,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { deletePoll } from "@/app/lib/actions/poll-actions";
-import { createClient } from "@/lib/supabase/client";
+import { getAllPolls } from "@/app/lib/actions/poll-actions";
+import { Poll } from "@/app/lib/types";
+import AdminPollActions from "./AdminPollActions";
 
-interface Poll {
-  id: string;
-  question: string;
-  user_id: string;
-  created_at: string;
-  options: string[];
-}
+export default async function AdminPage() {
+  const { polls, error } = await getAllPolls();
 
-export default function AdminPage() {
-  const [polls, setPolls] = useState<Poll[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchAllPolls();
-  }, []);
-
-  const fetchAllPolls = async () => {
-    const supabase = createClient();
-
-    const { data, error } = await supabase
-      .from("polls")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setPolls(data);
-    }
-    setLoading(false);
-  };
-
-  const handleDelete = async (pollId: string) => {
-    setDeleteLoading(pollId);
-    const result = await deletePoll(pollId);
-
-    if (!result.error) {
-      setPolls(polls.filter((poll) => poll.id !== pollId));
-    }
-
-    setDeleteLoading(null);
-  };
-
-  if (loading) {
-    return <div className="p-6">Loading all polls...</div>;
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto py-8">
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4">
+          <p>Error loading polls: {error}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -68,12 +33,13 @@ export default function AdminPage() {
       </div>
 
       <div className="grid gap-4">
-        {polls.map((poll) => (
+        {polls && polls.map((poll) => (
           <Card key={poll.id} className="border-l-4 border-l-blue-500">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg">{poll.question}</CardTitle>
+                  <CardTitle className="text-lg">{poll.title}</CardTitle>
+                  {poll.description && <CardDescription className="mt-1">{poll.description}</CardDescription>}
                   <CardDescription>
                     <div className="space-y-1 mt-2">
                       <div>
@@ -95,23 +61,16 @@ export default function AdminPage() {
                     </div>
                   </CardDescription>
                 </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(poll.id)}
-                  disabled={deleteLoading === poll.id}
-                >
-                  {deleteLoading === poll.id ? "Deleting..." : "Delete"}
-                </Button>
+                <AdminPollActions pollId={poll.id} />
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <h4 className="font-medium">Options:</h4>
                 <ul className="list-disc list-inside space-y-1">
-                  {poll.options.map((option, index) => (
-                    <li key={index} className="text-gray-700">
-                      {option}
+                  {poll.options && poll.options.map((option) => (
+                    <li key={option.id} className="text-gray-700">
+                      {option.option_text} ({option.votes || 0} votes)
                     </li>
                   ))}
                 </ul>
@@ -121,7 +80,7 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {polls.length === 0 && (
+      {(!polls || polls.length === 0) && (
         <div className="text-center py-8 text-gray-500">
           No polls found in the system.
         </div>

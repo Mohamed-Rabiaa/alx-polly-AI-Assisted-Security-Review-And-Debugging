@@ -1,9 +1,18 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { getUserPolls } from '@/app/lib/actions/poll-actions';
+import { createClient } from '@/lib/supabase/server';
 import PollActions from './PollActions'; 
 
 export default async function PollsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    redirect('/login');
+  }
+
   const { polls, error } = await getUserPolls();
 
   return (

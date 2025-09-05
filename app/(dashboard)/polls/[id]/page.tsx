@@ -1,47 +1,30 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { getPollById } from '@/app/lib/actions/poll-actions';
+import PollVoteForm from './PollVoteForm';
 
-// Mock data for a single poll
-const mockPoll = {
-  id: '1',
-  title: 'Favorite Programming Language',
-  description: 'What programming language do you prefer to use?',
-  options: [
-    { id: '1', text: 'JavaScript', votes: 15 },
-    { id: '2', text: 'Python', votes: 12 },
-    { id: '3', text: 'Java', votes: 8 },
-    { id: '4', text: 'C#', votes: 5 },
-    { id: '5', text: 'Go', votes: 2 },
-  ],
-  totalVotes: 42,
-  createdAt: '2023-10-15',
-  createdBy: 'John Doe',
-};
+export default async function PollDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
-export default function PollDetailPage({ params }: { params: { id: string } }) {
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [hasVoted, setHasVoted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Fetch poll data using the updated action
+  const { poll, error: pollError } = await getPollById(id);
+  
+  if (pollError || !poll) {
+    return (
+      <div className="max-w-3xl mx-auto py-8">
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4">
+          <p>Error loading poll: {pollError || 'Poll not found'}</p>
+          <Link href="/polls" className="text-blue-600 hover:underline mt-2 inline-block">
+            &larr; Back to Polls
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  // In a real app, you would fetch the poll data based on the ID
-  const poll = mockPoll;
-  const totalVotes = poll.options.reduce((sum, option) => sum + option.votes, 0);
-
-  const handleVote = () => {
-    if (!selectedOption) return;
-    
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setHasVoted(true);
-      setIsSubmitting(false);
-    }, 1000);
-  };
+  // Calculate total votes
+  const totalVotes = poll.options ? poll.options.reduce((sum, option) => sum + (option.votes || 0), 0) : 0;
 
   const getPercentage = (votes: number) => {
     if (totalVotes === 0) return 0;
@@ -56,10 +39,7 @@ export default function PollDetailPage({ params }: { params: { id: string } }) {
         </Link>
         <div className="flex space-x-2">
           <Button variant="outline" asChild>
-            <Link href={`/polls/${params.id}/edit`}>Edit Poll</Link>
-          </Button>
-          <Button variant="outline" className="text-red-500 hover:text-red-700">
-            Delete
+            <Link href={`/polls/${id}/edit`}>Edit Poll</Link>
           </Button>
         </div>
       </div>
@@ -67,54 +47,34 @@ export default function PollDetailPage({ params }: { params: { id: string } }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">{poll.title}</CardTitle>
-          <CardDescription>{poll.description}</CardDescription>
+          {poll.description && <CardDescription>{poll.description}</CardDescription>}
         </CardHeader>
         <CardContent className="space-y-4">
-          {!hasVoted ? (
-            <div className="space-y-3">
-              {poll.options.map((option) => (
-                <div 
-                  key={option.id} 
-                  className={`p-3 border rounded-md cursor-pointer transition-colors ${selectedOption === option.id ? 'border-blue-500 bg-blue-50' : 'hover:bg-slate-50'}`}
-                  onClick={() => setSelectedOption(option.id)}
-                >
-                  {option.text}
+          <PollVoteForm poll={poll} />
+          
+          <div className="space-y-4 mt-6">
+            <h3 className="font-medium">Current Results:</h3>
+            {poll.options && poll.options.map((option) => (
+              <div key={option.id} className="space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>{option.option_text}</span>
+                  <span>{getPercentage(option.votes || 0)}% ({option.votes || 0} votes)</span>
                 </div>
-              ))}
-              <Button 
-                onClick={handleVote} 
-                disabled={!selectedOption || isSubmitting} 
-                className="mt-4"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Vote'}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <h3 className="font-medium">Results:</h3>
-              {poll.options.map((option) => (
-                <div key={option.id} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>{option.text}</span>
-                    <span>{getPercentage(option.votes)}% ({option.votes} votes)</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
-                      style={{ width: `${getPercentage(option.votes)}%` }}
-                    ></div>
-                  </div>
+                <div className="w-full bg-slate-100 rounded-full h-2.5">
+                  <div 
+                    className="bg-blue-600 h-2.5 rounded-full" 
+                    style={{ width: `${getPercentage(option.votes || 0)}%` }}
+                  ></div>
                 </div>
-              ))}
-              <div className="text-sm text-slate-500 pt-2">
-                Total votes: {totalVotes}
               </div>
+            ))}
+            <div className="text-sm text-slate-500 pt-2">
+              Total votes: {totalVotes}
             </div>
-          )}
+          </div>
         </CardContent>
         <CardFooter className="text-sm text-slate-500 flex justify-between">
-          <span>Created by {poll.createdBy}</span>
-          <span>Created on {new Date(poll.createdAt).toLocaleDateString()}</span>
+          <span>Created on {new Date(poll.created_at).toLocaleDateString()}</span>
         </CardFooter>
       </Card>
 

@@ -9,7 +9,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { login } from '@/app/lib/actions/auth-actions';
 
 export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null);
+  // Use a more specific error state type for better type safety
+  const [error, setError] = useState<{
+    message: string;
+    code?: string;
+    timestamp?: number;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -21,13 +26,17 @@ export default function LoginPage() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    const result = await login({ email, password });
+    try {
+      const result = await login({ email, password });
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError({ message: result.error, timestamp: Date.now() });
+        setLoading(false);
+      }
+      // If no error, the server action will handle the redirect
+    } catch (error) {
+      setError({ message: 'An unexpected error occurred. Please try again.', timestamp: Date.now() });
       setLoading(false);
-    } else {
-      window.location.href = '/polls'; // Full reload to pick up session
     }
   };
 
@@ -61,7 +70,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-red-500 text-sm">{error.message}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
             </Button>

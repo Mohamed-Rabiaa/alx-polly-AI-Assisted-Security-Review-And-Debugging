@@ -5,10 +5,14 @@ import { updatePoll } from '@/app/lib/actions/poll-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Poll } from '@/app/lib/types';
 
-export default function EditPollForm({ poll }: { poll: any }) {
-  const [question, setQuestion] = useState(poll.question);
-  const [options, setOptions] = useState<string[]>(poll.options || []);
+export default function EditPollForm({ poll }: { poll: Poll }) {
+  const [title, setTitle] = useState(poll.title);
+  const [description, setDescription] = useState(poll.description || '');
+  const [options, setOptions] = useState<string[]>(
+    poll.options ? poll.options.map(opt => opt.option_text) : []
+  );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -28,7 +32,8 @@ export default function EditPollForm({ poll }: { poll: any }) {
       action={async (formData) => {
         setError(null);
         setSuccess(false);
-        formData.set('question', question);
+        formData.set('title', title);
+        formData.set('description', description);
         formData.delete('options');
         options.forEach((opt) => formData.append('options', opt));
         const res = await updatePoll(poll.id, formData);
@@ -44,13 +49,23 @@ export default function EditPollForm({ poll }: { poll: any }) {
       className="space-y-6"
     >
       <div>
-        <Label htmlFor="question">Poll Question</Label>
+        <Label htmlFor="title">Poll Title</Label>
         <Input
-          name="question"
-          id="question"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
+          name="title"
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           required
+        />
+      </div>
+      <div>
+        <Label htmlFor="description">Poll Description (Optional)</Label>
+        <Input
+          name="description"
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Add a description for your poll..."
         />
       </div>
       <div>

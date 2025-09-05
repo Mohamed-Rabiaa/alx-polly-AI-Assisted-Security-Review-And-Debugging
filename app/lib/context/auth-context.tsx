@@ -33,7 +33,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(data.user ?? null);
         setSession(null);
         setLoading(false);
-        console.log('AuthContext: Initial user loaded', data.user);
       }
     };
 
@@ -43,7 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       // Do not set loading to false here, only after initial load
-      console.log('AuthContext: Auth state changed', _event, session, session?.user);
     });
 
     return () => {
@@ -56,7 +54,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
   };
 
-  console.log('AuthContext: user', user);
   return (
     <AuthContext.Provider value={{ session, user, signOut, loading }}>
       {children}

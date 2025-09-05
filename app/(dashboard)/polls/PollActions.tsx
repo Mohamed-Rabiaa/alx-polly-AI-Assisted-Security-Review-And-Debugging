@@ -1,16 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/lib/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { deletePoll } from "@/app/lib/actions/poll-actions";
-
-interface Poll {
-  id: string;
-  question: string;
-  options: any[];
-  user_id: string;
-}
+import { Poll } from "@/app/lib/types";
 
 interface PollActionsProps {
   poll: Poll;
@@ -18,10 +13,29 @@ interface PollActionsProps {
 
 export default function PollActions({ poll }: PollActionsProps) {
   const { user } = useAuth();
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this poll?")) {
-      await deletePoll(poll.id);
-      window.location.reload();
+    if (!confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    
+    try {
+      const result = await deletePoll(poll.id);
+      
+      if (!result.error) {
+        // Refresh the page to show updated list
+        window.location.reload();
+      } else {
+        alert('Failed to delete poll: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Delete poll error:', error);
+      alert('Failed to delete poll. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -32,9 +46,9 @@ export default function PollActions({ poll }: PollActionsProps) {
           <div className="h-full">
             <div>
               <h2 className="group-hover:text-blue-600 transition-colors font-bold text-lg">
-                {poll.question}
+                {poll.title}
               </h2>
-              <p className="text-slate-500">{poll.options.length} options</p>
+              <p className="text-slate-500">{poll.options ? poll.options.length : 0} options</p>
             </div>
           </div>
         </div>
@@ -44,8 +58,13 @@ export default function PollActions({ poll }: PollActionsProps) {
           <Button asChild variant="outline" size="sm">
             <Link href={`/polls/${poll.id}/edit`}>Edit</Link>
           </Button>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            Delete
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>
         </div>
       )}

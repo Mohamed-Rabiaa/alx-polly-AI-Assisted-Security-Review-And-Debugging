@@ -22,19 +22,29 @@ export default function RegisterPage() {
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirmPassword') as string;
 
+    // Client-side password confirmation (basic check before server validation)
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
       return;
     }
 
-    const result = await register({ name, email, password });
+    try {
+      const result = await register({
+        name,
+        email,
+        password,
+        confirmPassword,
+      });
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      }
+      // If no error, the server action will handle the redirect
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
       setLoading(false);
-    } else {
-      window.location.href = '/polls'; // Full reload to pick up session
     }
   };
 

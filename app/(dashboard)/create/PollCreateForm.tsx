@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function PollCreateForm() {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -32,6 +34,10 @@ export default function PollCreateForm() {
           setError(res.error);
         } else {
           setSuccess(true);
+          // Clear form
+          setTitle("");
+          setDescription("");
+          setOptions(["", ""]);
           setTimeout(() => {
             window.location.href = "/polls";
           }, 1200);
@@ -40,8 +46,24 @@ export default function PollCreateForm() {
       className="space-y-6 max-w-md mx-auto"
     >
       <div>
-        <Label htmlFor="question">Poll Question</Label>
-        <Input name="question" id="question" required />
+        <Label htmlFor="title">Poll Title</Label>
+        <Input 
+          name="title" 
+          id="title" 
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required 
+        />
+      </div>
+      <div>
+        <Label htmlFor="description">Poll Description (Optional)</Label>
+        <Input 
+          name="description" 
+          id="description" 
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Add a description for your poll..." 
+        />
       </div>
       <div>
         <Label>Options</Label>
@@ -69,4 +91,4 @@ export default function PollCreateForm() {
       <Button type="submit">Create Poll</Button>
     </form>
   );
-} 
+}
